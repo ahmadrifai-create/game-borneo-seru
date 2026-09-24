@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Treja: Petualangan Kalimantan Barat</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Treja 3D: Petualangan Kalimantan Barat</title>
 <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { height:100%; overflow:hidden; font-family:'Segoe UI',Tahoma,sans-serif; background:#0a0a1a; touch-action:none; }
@@ -221,13 +222,13 @@
     <div class="intro-bg"></div>
     <div class="stars"></div>
     <div class="intro-content">
-        <div class="intro-badge">🎮 Game Edukasi IPS</div>
+        <div class="intro-badge">🎮 Game Edukasi IPS • 3D</div>
         <div class="intro-logo">🏔️</div>
         <div class="intro-title">TREJA</div>
         <div class="intro-subtitle">Petualangan Kalimantan Barat</div>
         <div class="intro-desc">
             Jelajahi <strong>sejarah</strong>, <strong>kebudayaan</strong>, dan <strong>tradisi</strong>
-            Kalimantan Barat dalam petualangan 2D!
+            Kalimantan Barat dalam petualangan 3D!
         </div>
         <button class="btn-start" id="btnStartMain" type="button">
             <span>▶</span> Mulai Petualangan
@@ -243,10 +244,10 @@
 <!-- LOADING -->
 <div id="loadingScreen">
     <div class="loading-logo">🏔️</div>
-    <div class="loading-title">TREJA</div>
+    <div class="loading-title">TREJA 3D</div>
     <div class="loading-sub">Petualangan Kalimantan Barat</div>
     <div class="loading-bar-container"><div class="loading-bar" id="loadingBar"></div></div>
-    <div class="loading-text" id="loadingText">Menyiapkan...</div>
+    <div class="loading-text" id="loadingText">Menyiapkan WebGL...</div>
 </div>
 
 <!-- GAME -->
@@ -323,6 +324,34 @@
     <p id="transitionSubtitle">Nuansa Pegunungan</p>
 </div>
 
+<!-- Load Three.js dengan 3 CDN fallback -->
+<script>
+(function loadThreeJS() {
+    const cdns = [
+        'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+        'https://unpkg.com/three@0.128.0/build/three.min.js',
+        'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'
+    ];
+    let idx = 0;
+    function tryLoad() {
+        if (idx >= cdns.length) {
+            document.getElementById('loadingText').textContent = '❌ Gagal memuat WebGL library';
+            return;
+        }
+        const s = document.createElement('script');
+        s.src = cdns[idx];
+        s.onload = () => {
+            console.log('Three.js loaded');
+            window.__THREE_READY__ = true;
+            if (window.__TREJA_QUEUE__) window.__TREJA_QUEUE__.forEach(fn => fn());
+        };
+        s.onerror = () => { idx++; tryLoad(); };
+        document.head.appendChild(s);
+    }
+    tryLoad();
+})();
+</script>
+
 <script>
 (function() {
 'use strict';
@@ -331,45 +360,44 @@
 // GAME DATA
 // ============================================================
 const GAME_DATA = {
-    version: "2.4-2D",
+    version: "3.0-3D",
     levels: {
         1: {
             name: "Pegunungan", subtitle: "Nuansa Pegunungan dengan Siklus Siang-Malam",
             icon: "🏔️", terrain: "mountain",
-            skyDay: "#87ceeb", skyNight: "#0a0a2e",
-            ground: "#3a6b1e", groundDark: "#2d5016",
+            bgColorDay: 0x87ceeb, bgColorNight: 0x0a0a2e,
+            fogColorDay: 0x9bc9e8, fogColorNight: 0x0a0a2e,
+            groundColor: 0x3a6b1e,
             treasures: [
-                { id:"t1_1", position:{x:-15,z:-10}, title:"Rumah Panjang Dayak", content:"Rumah Panjang (Rumah Betang) adalah rumah adat suku Dayak di Kalimantan Barat. Dibangun dari kayu ulin pilihan, berbentuk panggung memanjang, dan dihuni oleh beberapa keluarga dalam satu garis keturunan. Panjangnya bisa mencapai 180 meter!", icon:"🏠" },
-                { id:"t1_2", position:{x:18,z:-8}, title:"Tari Monong", content:"Tari Monong adalah tarian tradisional suku Dayak Kalimantan Barat yang berfungsi sebagai penyembuhan. Dilakukan oleh seorang balian (dukun) untuk mengusir roh jahat penyebab penyakit.", icon:"💃" },
-                { id:"t1_3", position:{x:-10,z:15}, title:"Pakaian Adat Dayak", content:"Pakaian adat Dayak Kalimantan Barat terbuat dari kulit kayu dan dihiasi manik-manik. Pria memakai baju kurung dan cawat. Wanita memakai rok panjang dengan hiasan manik-manik dan bulu burung enggang di kepala.", icon:"👘" },
-                { id:"t1_4", position:{x:20,z:18}, title:"Alat Musik Sape", content:"Sape (Sampe) adalah alat musik petik tradisional Dayak Kayaan di Kalimantan Barat. Terbuat dari kayu ulin, sape memiliki 2-4 senar. Bentuknya menyerupai perahu dengan ukiran khas Dayak.", icon:"🎵" },
-                { id:"t1_5", position:{x:-20,z:5}, title:"Tradisi Gawai Dayak", content:"Gawai Dayak adalah pesta panen tahunan masyarakat Dayak sebagai ucapan syukur kepada Jubata (Tuhan). Dilaksanakan bulan Mei-Juni, meliputi upacara adat, tarian, dan pesta rakyat.", icon:"🎉" }
+                { id:"t1_1", position:{x:-15, z:-10}, title:"Rumah Panjang Dayak", content:"Rumah Panjang (Rumah Betang) adalah rumah adat suku Dayak di Kalimantan Barat. Dibangun dari kayu ulin pilihan, berbentuk panggung memanjang, dan dihuni oleh beberapa keluarga dalam satu garis keturunan.", icon:"🏠" },
+                { id:"t1_2", position:{x:18, z:-8}, title:"Tari Monong", content:"Tari Monong adalah tarian tradisional suku Dayak Kalimantan Barat yang berfungsi sebagai penyembuhan. Dilakukan oleh seorang balian (dukun) untuk mengusir roh jahat penyebab penyakit.", icon:"💃" },
+                { id:"t1_3", position:{x:-10, z:15}, title:"Pakaian Adat Dayak", content:"Pakaian adat Dayak Kalimantan Barat terbuat dari kulit kayu dan dihiasi manik-manik. Pria memakai baju kurung dan cawat. Wanita memakai rok panjang dengan hiasan manik-manik dan bulu burung enggang.", icon:"👘" },
+                { id:"t1_4", position:{x:20, z:18}, title:"Alat Musik Sape", content:"Sape (Sampe) adalah alat musik petik tradisional Dayak Kayaan di Kalimantan Barat. Terbuat dari kayu ulin, sape memiliki 2-4 senar.", icon:"🎵" },
+                { id:"t1_5", position:{x:-20, z:5}, title:"Tradisi Gawai Dayak", content:"Gawai Dayak adalah pesta panen tahunan masyarakat Dayak sebagai ucapan syukur kepada Jubata (Tuhan). Dilaksanakan bulan Mei-Juni.", icon:"🎉" }
             ]
         },
         2: {
             name: "Pasar & Pertokoan", subtitle: "Nuansa Pagi di Pasar & Pertokoan",
             icon: "🏪", terrain: "market",
-            skyDay: "#ffd9a0", skyNight: "#ffd9a0",
-            ground: "#9B6B3C", groundDark: "#7a5430",
+            bgColor: 0xffd9a0, fogColor: 0xffe4b5, groundColor: 0x9B6B3C,
             treasures: [
-                { id:"t2_1", position:{x:-12,z:-12}, title:"Pasar Tradisional Pontianak", content:"Pasar Flamboyan dan Pasar Tanjung Hulu adalah pasar tradisional ikonik di Pontianak. Menjual hasil bumi Kalimantan Barat seperti sayur midi, ikan air tawar, dan kerajinan tangan khas Dayak dan Melayu.", icon:"🏪" },
-                { id:"t2_2", position:{x:15,z:-10}, title:"Kain Tenun Sintang", content:"Kain Tenun Sintang adalah kain tradisional Kalimantan Barat dengan motif khas Dayak dan Melayu. Dibuat dengan alat tenun tradisional (gedokan). Motifnya meliputi tumbuhan, hewan, dan geometris.", icon:"🧵" },
-                { id:"t2_3", position:{x:-8,z:14}, title:"Kuliner Khas Kalbar", content:"Kuliner khas Kalimantan Barat: Chai Kue (kue basah isi bengkuang), Pengkang (ketan bakar isi ebi), Bubur Pedas, dan Sup Ikan Patin. Mencerminkan akulturasi budaya Tionghoa, Melayu, dan Dayak.", icon:"🍜" },
-                { id:"t2_4", position:{x:18,z:16}, title:"Kerajinan Anyaman", content:"Kerajinan anyaman dari rotan dan bambu merupakan tradisi turun-temurun masyarakat Kalimantan Barat. Produk seperti bakul, tikar, dan topo (topi tradisional) dibuat oleh suku Dayak dan Melayu.", icon:"🧺" },
-                { id:"t2_5", position:{x:-18,z:8}, title:"Bahasa & Pantun Melayu", content:"Bahasa Melayu Pontianak adalah bahasa dagang di pasar tradisional Kalimantan Barat. Sastra lisan seperti pantun dan syair Melayu masih dilestarikan.", icon:"📖" }
+                { id:"t2_1", position:{x:-12, z:-12}, title:"Pasar Tradisional Pontianak", content:"Pasar Flamboyan dan Pasar Tanjung Hulu adalah pasar tradisional ikonik di Pontianak.", icon:"🏪" },
+                { id:"t2_2", position:{x:15, z:-10}, title:"Kain Tenun Sintang", content:"Kain Tenun Sintang adalah kain tradisional Kalimantan Barat dengan motif khas Dayak dan Melayu. Dibuat dengan alat tenun tradisional (gedokan).", icon:"🧵" },
+                { id:"t2_3", position:{x:-8, z:14}, title:"Kuliner Khas Kalbar", content:"Kuliner khas: Chai Kue, Pengkang, Bubur Pedas, dan Sup Ikan Patin. Mencerminkan akulturasi budaya Tionghoa, Melayu, dan Dayak.", icon:"🍜" },
+                { id:"t2_4", position:{x:18, z:16}, title:"Kerajinan Anyaman", content:"Kerajinan anyaman dari rotan dan bambu merupakan tradisi turun-temurun masyarakat Kalimantan Barat. Produk seperti bakul, tikar, dan topo.", icon:"🧺" },
+                { id:"t2_5", position:{x:-18, z:8}, title:"Bahasa & Pantun Melayu", content:"Bahasa Melayu Pontianak adalah bahasa dagang di pasar tradisional Kalimantan Barat. Sastra lisan seperti pantun dan syair Melayu masih dilestarikan.", icon:"📖" }
             ]
         },
         3: {
             name: "Keraton Kadriah", subtitle: "Istana Kesultanan Pontianak",
             icon: "🏛️", terrain: "keraton",
-            skyDay: "#1a0a2e", skyNight: "#1a0a2e",
-            ground: "#e8c860", groundDark: "#c9a840",
+            bgColor: 0x1a0a2e, fogColor: 0x2a1a4e, groundColor: 0xe8c860,
             treasures: [
-                { id:"t3_1", position:{x:-10,z:-10}, title:"Keraton Kadriah", content:"Keraton Kadriah adalah istana Kesultanan Pontianak yang dibangun tahun 1771 oleh Sultan Syarif Abdurrahman Alkadrie. Berarsitektur Melayu dengan sentuhan Arab dan Eropa. Berwarna kuning khas Melayu.", icon:"🏛️" },
-                { id:"t3_2", position:{x:12,z:-8}, title:"Masjid Sultan Syarif Abdurrahman", content:"Masjid Jami' Sultan Syarif Abdurrahman adalah masjid bersejarah di kompleks Keraton Kadriah, dibangun bersamaan dengan keraton. Arsitekturnya khas Melayu dengan atap bertingkat.", icon:"🕌" },
-                { id:"t3_3", position:{x:-8,z:12}, title:"Kesultanan Pontianak", content:"Kesultanan Pontianak didirikan tahun 1771 oleh Syarif Abdurrahman Alkadrie. Sistem pemerintahannya menggabungkan tradisi Melayu, Arab, dan Dayak. Hingga kini masih eksis sebagai simbol budaya.", icon:"👑" },
-                { id:"t3_4", position:{x:15,z:14}, title:"Adat Istiadat Melayu Pontianak", content:"Adat istiadat Melayu Pontianak meliputi Tepung Tawar (pemberian restu), Tari Jepin (tarian pergaulan Melayu), dan tradisi Berpantun. Pakaian adat didominasi warna kuning, merah, dan hijau dengan hiasan songket.", icon:"🎭" },
-                { id:"t3_5", position:{x:-15,z:8}, title:"Benda Pusaka Keraton", content:"Keraton Kadriah menyimpan berbagai benda pusaka seperti Keris, Tombak, dan Naskah Kuno. Salah satunya adalah Al-Quran kuno bertuliskan tangan. Benda-benda ini menjadi bukti sejarah kejayaan Kesultanan Pontianak.", icon:"⚔️" }
+                { id:"t3_1", position:{x:-10, z:-10}, title:"Keraton Kadriah", content:"Keraton Kadriah adalah istana Kesultanan Pontianak yang dibangun tahun 1771 oleh Sultan Syarif Abdurrahman Alkadrie.", icon:"🏛️" },
+                { id:"t3_2", position:{x:12, z:-8}, title:"Masjid Sultan Syarif Abdurrahman", content:"Masjid Jami' Sultan Syarif Abdurrahman adalah masjid bersejarah di kompleks Keraton Kadriah, dibangun bersamaan dengan keraton.", icon:"🕌" },
+                { id:"t3_3", position:{x:-8, z:12}, title:"Kesultanan Pontianak", content:"Kesultanan Pontianak didirikan tahun 1771 oleh Syarif Abdurrahman Alkadrie. Sistem pemerintahannya menggabungkan tradisi Melayu, Arab, dan Dayak.", icon:"👑" },
+                { id:"t3_4", position:{x:15, z:14}, title:"Adat Istiadat Melayu Pontianak", content:"Adat istiadat Melayu Pontianak meliputi Tepung Tawar, Tari Jepin, dan tradisi Berpantun. Pakaian adat didominasi warna kuning, merah, dan hijau.", icon:"🎭" },
+                { id:"t3_5", position:{x:-15, z:8}, title:"Benda Pusaka Keraton", content:"Keraton Kadriah menyimpan berbagai benda pusaka seperti Keris, Tombak, dan Naskah Kuno. Salah satunya adalah Al-Quran kuno bertuliskan tangan.", icon:"⚔️" }
             ]
         }
     },
@@ -394,49 +422,24 @@ const GameState = {
     currentLevel: 1, score: 0, highscore: 0,
     treasuresCollected: 0, totalTreasures: 5,
     discoveredItems: [], isPaused: false, isTransitioning: false,
-    timeOfDay: 0.2,          // 0..1: 0.25 = tengah hari
-    timeSpeed: 0.0012,       // ~14 menit untuk siklus penuh
-    isNight: false,
-    gameStarted: false
-};
-
-const world = {
-    width: 100, height: 100,
-    player: { x: 0, z: 0, rot: 0, walkPhase: 0 },
-    treasures: [],
-    animals: [],
-    envObjects: [],
-    camera: { x: 0, z: 15 }
+    timeOfDay: 0.2, timeSpeed: 0.0003,
+    isNight: false, gameStarted: false,
+    threeReady: false
 };
 
 // ============================================================
-// DOM
+// THREE.JS GLOBALS
 // ============================================================
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const introScreen = document.getElementById('introScreen');
-const btnStartMain = document.getElementById('btnStartMain');
-const loadingScreen = document.getElementById('loadingScreen');
-const loadingBar = document.getElementById('loadingBar');
-const loadingText = document.getElementById('loadingText');
-const uiOverlay = document.getElementById('uiOverlay');
-const levelDisplay = document.getElementById('levelDisplay');
-const treasureCount = document.getElementById('treasureCount');
-const scoreDisplay = document.getElementById('scoreDisplay');
-const highscoreDisplay = document.getElementById('highscoreDisplay');
-const hintBubble = document.getElementById('hintBubble');
-const joystickArea = document.getElementById('joystickArea');
-const joystickKnob = document.getElementById('joystickKnob');
-const modalInfo = document.getElementById('modalInfo');
-const modalQuiz = document.getElementById('modalQuiz');
-const modalComplete = document.getElementById('modalComplete');
-const modalHelp = document.getElementById('modalHelp');
-const levelTransition = document.getElementById('levelTransition');
-const clockIcon = document.getElementById('clockIcon');
-const clockText = document.getElementById('clockText');
-
+let scene, camera, renderer, clock;
+let playerGroup;
+let treasures = [];
+let environmentObjects = [];
+let particles = [];
+let animals = [];
+let ambientLight, dirLight, hemiLight;
+let sunMesh, moonMesh;
 let joystickInput = { x: 0, y: 0 };
-let canvasW = 0, canvasH = 0, dpr = 1;
+let lastTime = 0;
 
 // ============================================================
 // AUDIO
@@ -507,135 +510,980 @@ function stopMusic() {
 }
 
 // ============================================================
-// RESIZE
+// DOM
 // ============================================================
-function resizeCanvas() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvasW = window.innerWidth;
-    canvasH = window.innerHeight;
-    canvas.width = canvasW * dpr;
-    canvas.height = canvasH * dpr;
-    canvas.style.width = canvasW + 'px';
-    canvas.style.height = canvasH + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+const canvas = document.getElementById('gameCanvas');
+const introScreen = document.getElementById('introScreen');
+const btnStartMain = document.getElementById('btnStartMain');
+const loadingScreen = document.getElementById('loadingScreen');
+const loadingBar = document.getElementById('loadingBar');
+const loadingText = document.getElementById('loadingText');
+const uiOverlay = document.getElementById('uiOverlay');
+const levelDisplay = document.getElementById('levelDisplay');
+const treasureCount = document.getElementById('treasureCount');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const highscoreDisplay = document.getElementById('highscoreDisplay');
+const hintBubble = document.getElementById('hintBubble');
+const joystickArea = document.getElementById('joystickArea');
+const joystickKnob = document.getElementById('joystickKnob');
+const modalInfo = document.getElementById('modalInfo');
+const modalQuiz = document.getElementById('modalQuiz');
+const modalComplete = document.getElementById('modalComplete');
+const modalHelp = document.getElementById('modalHelp');
+const levelTransition = document.getElementById('levelTransition');
+const clockIcon = document.getElementById('clockIcon');
+const clockText = document.getElementById('clockText');
+
+// ============================================================
+// THREE.JS INIT
+// ============================================================
+function initThree() {
+    scene = new THREE.Scene();
+    clock = new THREE.Clock();
+
+    camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 300);
+    camera.position.set(0, 9, 13);
+
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        powerPreference: 'high-performance'
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    // Lights
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    dirLight = new THREE.DirectionalLight(0xfff2cc, 1.2);
+    dirLight.position.set(15, 30, 15);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 90;
+    dirLight.shadow.camera.left = -45;
+    dirLight.shadow.camera.right = 45;
+    dirLight.shadow.camera.top = 45;
+    dirLight.shadow.camera.bottom = -45;
+    scene.add(dirLight);
+
+    hemiLight = new THREE.HemisphereLight(0xa8d8ff, 0x4a7a2a, 0.5);
+    scene.add(hemiLight);
+
+    // Sun & Moon
+    const sunGeo = new THREE.SphereGeometry(2.5, 16, 16);
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffdd44 });
+    sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    sunMesh.visible = false;
+    scene.add(sunMesh);
+
+    const moonGeo = new THREE.SphereGeometry(2, 16, 16);
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xddddff });
+    moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    moonMesh.visible = false;
+    scene.add(moonMesh);
+
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', () => setTimeout(onResize, 150));
 }
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+
+function onResize() {
+    if (!renderer || !camera) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
 // ============================================================
-// BUILD LEVEL
+// PLAYER — BAJU ADAT DAYAK 3D
 // ============================================================
-function buildLevel(levelNum) {
-    const L = GAME_DATA.levels[levelNum];
-    if (!L) return;
-    world.envObjects = [];
-    world.treasures = [];
-    world.animals = [];
-    world.player.x = 0; world.player.z = 0;
-    world.player.rot = 0;
-    world.camera.x = 0; world.camera.z = 15;
+function createPlayer() {
+    playerGroup = new THREE.Group();
 
-    if (L.terrain === "mountain") {
-        // Gunung di tepi
-        for (let i = 0; i < 16; i++) {
-            const angle = (i/16) * Math.PI * 2;
-            const r = 48 + Math.random() * 10;
-            world.envObjects.push({
-                type: 'mountain',
-                x: Math.cos(angle) * r,
-                z: Math.sin(angle) * r,
-                size: 8 + Math.random() * 8,
-                height: 14 + Math.random() * 22,
-                color: ['#4a6741','#3d5a3a','#556b2f','#39554a'][i % 4],
-                hasSnow: Math.random() > 0.6
-            });
-        }
-        // Pohon
-        for (let i = 0; i < 30; i++) {
-            const x = (Math.random() - 0.5) * 70;
-            const z = (Math.random() - 0.5) * 70;
-            if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
-            if (Math.sqrt(x*x + z*z) > 42) continue;
-            world.envObjects.push({ type:'tree', x, z, size: 1 + Math.random() * 0.6, color:'#2d5016' });
-        }
-        // Batu
-        for (let i = 0; i < 15; i++) {
-            const x = (Math.random() - 0.5) * 70;
-            const z = (Math.random() - 0.5) * 70;
-            if (Math.sqrt(x*x + z*z) > 42) continue;
-            world.envObjects.push({ type:'rock', x, z, size: 0.6 + Math.random() * 0.8, color:'#808080' });
-        }
-        // Kucing & Kelinci
-        const catPos = [{x:-8,z:-8},{x:10,z:5},{x:-5,z:12}];
-        const rabPos = [{x:5,z:-12},{x:-15,z:-3},{x:12,z:10}];
-        catPos.forEach(p => world.animals.push({ type:'cat', x:p.x, z:p.z, homeX:p.x, homeZ:p.z, wanderAngle:Math.random()*Math.PI*2, wanderTimer:0, phase:Math.random()*6.28 }));
-        rabPos.forEach(p => world.animals.push({ type:'rabbit', x:p.x, z:p.z, homeX:p.x, homeZ:p.z, wanderAngle:Math.random()*Math.PI*2, wanderTimer:0, phase:Math.random()*6.28 }));
-    } else if (L.terrain === "market") {
-        const shopColors = ['#E74C3C','#F39C12','#27AE60','#2980B9','#8E44AD','#D35400'];
-        for (let i = 0; i < 14; i++) {
-            const angle = (i/14) * Math.PI * 2;
-            const r = 38;
-            world.envObjects.push({
-                type:'shop',
-                x: Math.cos(angle) * r,
-                z: Math.sin(angle) * r,
-                size: 4,
-                color: shopColors[i % shopColors.length],
-                rot: Math.atan2(-Math.sin(angle), -Math.cos(angle))
-            });
-        }
-        const stallColors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF8C42'];
-        for (let i = 0; i < 12; i++) {
-            const angle = (i/12) * Math.PI * 2;
-            const r = 14 + Math.random() * 10;
-            world.envObjects.push({
-                type:'stall',
-                x: Math.cos(angle) * r,
-                z: Math.sin(angle) * r,
-                size: 1.2,
-                color: stallColors[i % stallColors.length]
-            });
-        }
-        const catPos = [{x:-8,z:-8},{x:10,z:5},{x:-5,z:12}];
-        const rabPos = [{x:5,z:-12},{x:-15,z:-3},{x:12,z:10}];
-        catPos.forEach(p => world.animals.push({ type:'cat', x:p.x, z:p.z, homeX:p.x, homeZ:p.z, wanderAngle:Math.random()*Math.PI*2, wanderTimer:0, phase:Math.random()*6.28 }));
-        rabPos.forEach(p => world.animals.push({ type:'rabbit', x:p.x, z:p.z, homeX:p.x, homeZ:p.z, wanderAngle:Math.random()*Math.PI*2, wanderTimer:0, phase:Math.random()*6.28 }));
-    } else if (L.terrain === "keraton") {
-        world.envObjects.push({ type:'keraton', x:0, z:-8, size:16 });
-        world.envObjects.push({ type:'masjid', x:-20, z:-15, size:6 });
-        for (let i = 0; i < 12; i++) {
-            const a = (i/12) * Math.PI * 2;
-            world.envObjects.push({ type:'lamp', x: Math.cos(a) * 22, z: Math.sin(a) * 22 });
-        }
-        for (let i = 0; i < 30; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 25 + Math.random() * 8;
-            world.envObjects.push({ type:'flower', x: Math.cos(a) * r, z: Math.sin(a) * r });
-        }
+    // Body (baju adat merah)
+    const bodyGeo = new THREE.CylinderGeometry(0.6, 0.7, 1.5, 10);
+    const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x8B0000, roughness: 0.7, metalness: 0.1,
+        emissive: 0x330000, emissiveIntensity: 0.15
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.75;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    playerGroup.add(body);
+
+    // Sash manik emas
+    for (let i = 0; i < 3; i++) {
+        const sashGeo = new THREE.TorusGeometry(0.62, 0.055, 6, 20);
+        const sashMat = new THREE.MeshStandardMaterial({
+            color: 0xFFD700, emissive: 0x442200, emissiveIntensity: 0.4,
+            metalness: 0.85, roughness: 0.25
+        });
+        const sash = new THREE.Mesh(sashGeo, sashMat);
+        sash.position.y = 0.45 + i * 0.4;
+        sash.rotation.x = Math.PI / 2;
+        playerGroup.add(sash);
     }
 
-    L.treasures.forEach((t, i) => {
-        world.treasures.push({
-            x: t.position.x, z: t.position.z,
-            data: t, collected: false, phase: i * 0.7
-        });
-    });
+    // Head
+    const headGeo = new THREE.SphereGeometry(0.42, 14, 14);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xDEB887, roughness: 0.8 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.y = 1.8;
+    head.castShadow = true;
+    playerGroup.add(head);
 
-    applyAmbience(levelNum);
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.055, 8, 8);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.14, 1.85, 0.36);
+    playerGroup.add(eyeL);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeR.position.set(0.14, 1.85, 0.36);
+    playerGroup.add(eyeR);
+
+    // Headband merah
+    const hbGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.15, 14);
+    const hbMat = new THREE.MeshStandardMaterial({
+        color: 0xFF0000, emissive: 0x440000, emissiveIntensity: 0.25
+    });
+    const headband = new THREE.Mesh(hbGeo, hbMat);
+    headband.position.y = 2.05;
+    playerGroup.add(headband);
+
+    // Feathers (bulu enggang)
+    const feathers = [];
+    for (let i = 0; i < 9; i++) {
+        const fGeo = new THREE.ConeGeometry(0.07, 0.75, 5);
+        const fMat = new THREE.MeshStandardMaterial({
+            color: i % 2 === 0 ? 0xFFD700 : 0xFF0000,
+            emissive: 0x220000, emissiveIntensity: 0.2
+        });
+        const feather = new THREE.Mesh(fGeo, fMat);
+        const angle = (i / 9) * Math.PI * 2;
+        feather.position.set(Math.cos(angle) * 0.28, 2.55, Math.sin(angle) * 0.28);
+        feather.rotation.z = Math.cos(angle) * 0.35;
+        feather.rotation.x = Math.sin(angle) * 0.35;
+        feather.castShadow = true;
+        playerGroup.add(feather);
+        feathers.push(feather);
+    }
+
+    // Arms
+    const armGeo = new THREE.CylinderGeometry(0.15, 0.13, 1.05, 8);
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x8B0000, roughness: 0.7 });
+
+    const leftArm = new THREE.Mesh(armGeo, armMat);
+    leftArm.position.set(-0.78, 1.05, 0);
+    leftArm.rotation.z = 0.28;
+    leftArm.castShadow = true;
+    playerGroup.add(leftArm);
+    playerGroup.userData.leftArm = leftArm;
+
+    const rightArm = new THREE.Mesh(armGeo, armMat);
+    rightArm.position.set(0.78, 1.05, 0);
+    rightArm.rotation.z = -0.28;
+    rightArm.castShadow = true;
+    playerGroup.add(rightArm);
+    playerGroup.userData.rightArm = rightArm;
+
+    // Legs
+    const legGeo = new THREE.CylinderGeometry(0.18, 0.15, 0.95, 8);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x2F4F4F, roughness: 0.85 });
+
+    const leftLeg = new THREE.Mesh(legGeo, legMat);
+    leftLeg.position.set(-0.26, 0.05, 0);
+    leftLeg.castShadow = true;
+    playerGroup.add(leftLeg);
+    playerGroup.userData.leftLeg = leftLeg;
+
+    const rightLeg = new THREE.Mesh(legGeo, legMat);
+    rightLeg.position.set(0.26, 0.05, 0);
+    rightLeg.castShadow = true;
+    playerGroup.add(rightLeg);
+    playerGroup.userData.rightLeg = rightLeg;
+
+    // Necklace
+    const neckGeo = new THREE.TorusGeometry(0.33, 0.045, 6, 18);
+    const neckMat = new THREE.MeshStandardMaterial({
+        color: 0xFFD700, emissive: 0x442200, emissiveIntensity: 0.3, metalness: 0.7
+    });
+    const necklace = new THREE.Mesh(neckGeo, neckMat);
+    necklace.position.y = 1.45;
+    necklace.rotation.x = Math.PI / 2;
+    playerGroup.add(necklace);
+
+    playerGroup.position.set(0, 0, 0);
+    playerGroup.castShadow = true;
+    scene.add(playerGroup);
+}
+
+// ============================================================
+// ANIMALS
+// ============================================================
+function createCat(x, z) {
+    const cat = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xdd8844, roughness: 0.85 });
+
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.5, 4, 8), mat);
+    body.rotation.z = Math.PI / 2;
+    body.position.y = 0.32;
+    body.castShadow = true;
+    cat.add(body);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), mat);
+    head.position.set(0.45, 0.42, 0);
+    head.castShadow = true;
+    cat.add(head);
+
+    const earGeo = new THREE.ConeGeometry(0.08, 0.16, 4);
+    const earL = new THREE.Mesh(earGeo, mat);
+    earL.position.set(0.42, 0.6, -0.09);
+    cat.add(earL);
+    const earR = new THREE.Mesh(earGeo, mat);
+    earR.position.set(0.42, 0.6, 0.09);
+    cat.add(earR);
+
+    const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const eyeMat = new THREE.MeshStandardMaterial({
+        color: 0x00ff00, emissive: 0x00aa00, emissiveIntensity: 0.6
+    });
+    const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+    eye1.position.set(0.6, 0.46, -0.08);
+    cat.add(eye1);
+    const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+    eye2.position.set(0.6, 0.46, 0.08);
+    cat.add(eye2);
+
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.55, 6), mat);
+    tail.position.set(-0.4, 0.55, 0);
+    tail.rotation.z = -0.6;
+    cat.add(tail);
+
+    cat.position.set(x, 0, z);
+    cat.userData = {
+        type: 'cat', homeX: x, homeZ: z,
+        wanderAngle: Math.random() * Math.PI * 2,
+        wanderTimer: 0, tail: tail,
+        bobPhase: Math.random() * Math.PI * 2
+    };
+    scene.add(cat);
+    return cat;
+}
+
+function createRabbit(x, z) {
+    const rabbit = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), mat);
+    body.scale.set(1, 0.85, 1.2);
+    body.position.y = 0.22;
+    body.castShadow = true;
+    rabbit.add(body);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), mat);
+    head.position.set(0, 0.4, 0.22);
+    head.castShadow = true;
+    rabbit.add(head);
+
+    const earGeo = new THREE.CapsuleGeometry(0.04, 0.28, 4, 6);
+    const earL = new THREE.Mesh(earGeo, mat);
+    earL.position.set(-0.06, 0.66, 0.22);
+    earL.rotation.z = -0.15;
+    rabbit.add(earL);
+    const earR = new THREE.Mesh(earGeo, mat);
+    earR.position.set(0.06, 0.66, 0.22);
+    earR.rotation.z = 0.15;
+    rabbit.add(earR);
+
+    const innerMat = new THREE.MeshStandardMaterial({ color: 0xffaaaa });
+    const innerGeo = new THREE.CapsuleGeometry(0.02, 0.2, 4, 6);
+    const innerL = new THREE.Mesh(innerGeo, innerMat);
+    innerL.position.set(-0.06, 0.66, 0.24);
+    innerL.rotation.z = -0.15;
+    rabbit.add(innerL);
+    const innerR = new THREE.Mesh(innerGeo, innerMat);
+    innerR.position.set(0.06, 0.66, 0.24);
+    innerR.rotation.z = 0.15;
+    rabbit.add(innerR);
+
+    const eyeGeo = new THREE.SphereGeometry(0.035, 6, 6);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+    eye1.position.set(-0.07, 0.42, 0.35);
+    rabbit.add(eye1);
+    const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+    eye2.position.set(0.07, 0.42, 0.35);
+    rabbit.add(eye2);
+
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), innerMat);
+    nose.position.set(0, 0.36, 0.37);
+    rabbit.add(nose);
+
+    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mat);
+    tail.position.set(0, 0.26, -0.28);
+    rabbit.add(tail);
+
+    rabbit.position.set(x, 0, z);
+    rabbit.userData = {
+        type: 'rabbit', homeX: x, homeZ: z,
+        wanderAngle: Math.random() * Math.PI * 2,
+        wanderTimer: 0, hopPhase: Math.random() * Math.PI * 2
+    };
+    scene.add(rabbit);
+    return rabbit;
+}
+
+function spawnAnimals() {
+    const catPositions = [{ x: -8, z: -8 }, { x: 10, z: 5 }, { x: -5, z: 12 }];
+    const rabbitPositions = [{ x: 5, z: -12 }, { x: -15, z: -3 }, { x: 12, z: 10 }];
+    catPositions.forEach(p => animals.push(createCat(p.x, p.z)));
+    rabbitPositions.forEach(p => animals.push(createRabbit(p.x, p.z)));
+}
+
+function updateAnimals(delta, time) {
+    animals.forEach(a => {
+        const u = a.userData;
+        u.wanderTimer += delta;
+        if (u.wanderTimer > 2 + Math.random() * 2) {
+            u.wanderTimer = 0;
+            u.wanderAngle = Math.random() * Math.PI * 2;
+        }
+        const speed = u.type === 'cat' ? 0.8 : 1.2;
+        const nx = a.position.x + Math.cos(u.wanderAngle) * speed * delta;
+        const nz = a.position.z + Math.sin(u.wanderAngle) * speed * delta;
+        const dx = nx - u.homeX, dz = nz - u.homeZ;
+        if (Math.sqrt(dx * dx + dz * dz) < 5) {
+            a.position.x = nx;
+            a.position.z = nz;
+            a.rotation.y = -u.wanderAngle + Math.PI / 2;
+        } else {
+            u.wanderAngle += Math.PI;
+        }
+        if (u.type === 'cat') {
+            u.tail.rotation.y = Math.sin(time * 3 + u.bobPhase) * 0.5;
+            a.position.y = Math.abs(Math.sin(time * 2 + u.bobPhase)) * 0.04;
+        } else {
+            a.position.y = Math.abs(Math.sin(time * 4 + u.hopPhase)) * 0.18;
+        }
+    });
+}
+
+// ============================================================
+// LEVEL CLEAR
+// ============================================================
+function clearLevel() {
+    treasures.forEach(t => { if (t.mesh) scene.remove(t.mesh); });
+    treasures = [];
+    environmentObjects.forEach(obj => scene.remove(obj));
+    environmentObjects = [];
+    particles.forEach(p => scene.remove(p));
+    particles = [];
+    animals.forEach(a => scene.remove(a));
+    animals = [];
+    if (playerGroup) { scene.remove(playerGroup); playerGroup = null; }
+    if (sunMesh) sunMesh.visible = false;
+    if (moonMesh) moonMesh.visible = false;
+}
+
+// ============================================================
+// BUILD LEVELS
+// ============================================================
+function buildLevel(levelNum) {
+    clearLevel();
+    const L = GAME_DATA.levels[levelNum];
+    if (!L) return;
+
+    // Sky & fog
+    let bgColor, fogColor;
+    if (levelNum === 1 && GameState.isNight) {
+        bgColor = L.bgColorNight; fogColor = L.fogColorNight;
+    } else {
+        bgColor = L.bgColorDay || L.bgColor;
+        fogColor = L.fogColorDay || L.fogColor;
+    }
+    scene.background = new THREE.Color(bgColor);
+    scene.fog = new THREE.FogExp2(fogColor, levelNum === 1 ? 0.011 : 0.018);
+
+    // Ground
+    const groundGeo = new THREE.PlaneGeometry(120, 120, 60, 60);
+    const positions = groundGeo.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+        const x = positions[i];
+        const z = positions[i + 2];
+        let y = 0;
+        if (levelNum === 1) {
+            y = Math.sin(x * 0.25) * Math.cos(z * 0.25) * 1.2
+                + Math.sin(x * 0.1) * 1.8
+                + Math.cos(z * 0.15) * 1.2;
+        } else if (levelNum === 2) {
+            y = Math.sin(x * 0.4) * Math.cos(z * 0.4) * 0.4;
+        }
+        positions[i + 1] = y;
+    }
+    groundGeo.computeVertexNormals();
+    const groundMat = new THREE.MeshStandardMaterial({
+        color: L.groundColor, roughness: 0.95, metalness: 0.0
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    environmentObjects.push(ground);
+
+    // Build env
+    if (L.terrain === "mountain") {
+        buildMountains();
+        buildTreesAndRocks();
+        spawnAnimals();
+    } else if (L.terrain === "market") {
+        buildShops();
+        buildStalls();
+        spawnAnimals();
+    } else if (L.terrain === "keraton") {
+        buildKeraton();
+    }
+
+    createPlayer();
+    spawnTreasures(L.treasures);
+    createParticles(levelNum);
+
     GameState.treasuresCollected = 0;
     updateHUD();
 }
 
-function applyAmbience(levelNum) {
-    if (levelNum === 2) {
-        clockIcon.textContent = "🌅"; clockText.textContent = "Pagi";
-    } else if (levelNum === 3) {
-        clockIcon.textContent = "🏛️"; clockText.textContent = "Keraton";
+// ============================================================
+// LEVEL 1: MOUNTAINS
+// ============================================================
+function buildMountains() {
+    const colors = [0x4a6741, 0x3d5a3a, 0x556b2f, 0x39554a, 0x2d4a3a];
+    for (let i = 0; i < 22; i++) {
+        const angle = (i / 22) * Math.PI * 2 + Math.random() * 0.2;
+        const radius = 50 + Math.random() * 12;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const height = 18 + Math.random() * 25;
+        const baseRadius = 8 + Math.random() * 7;
+
+        const group = new THREE.Group();
+
+        // Main cone
+        const geo = new THREE.ConeGeometry(baseRadius, height, 8);
+        const mat = new THREE.MeshStandardMaterial({
+            color: colors[i % colors.length],
+            roughness: 0.95, flatShading: true
+        });
+        const mountain = new THREE.Mesh(geo, mat);
+        mountain.position.y = height / 2;
+        mountain.castShadow = true;
+        mountain.receiveShadow = true;
+        group.add(mountain);
+
+        // Snow cap
+        if (height > 26) {
+            const capGeo = new THREE.ConeGeometry(baseRadius * 0.32, height * 0.2, 8);
+            const capMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff, roughness: 0.7, flatShading: true
+            });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.y = height - height * 0.1;
+            group.add(cap);
+        }
+
+        // Secondary peak
+        if (Math.random() > 0.5) {
+            const h2 = height * 0.6;
+            const geo2 = new THREE.ConeGeometry(baseRadius * 0.65, h2, 7);
+            const m2 = new THREE.Mesh(geo2, mat);
+            m2.position.set(baseRadius * 0.7, h2 / 2, baseRadius * 0.3);
+            m2.rotation.y = Math.random() * Math.PI;
+            group.add(m2);
+        }
+
+        group.position.set(x, 0, z);
+        group.rotation.y = Math.random() * Math.PI;
+        scene.add(group);
+        environmentObjects.push(group);
+    }
+
+    // Boundary hills
+    for (let i = 0; i < 40; i++) {
+        const angle = (i / 40) * Math.PI * 2;
+        const radius = 46 + Math.random() * 3;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const geo = new THREE.SphereGeometry(3 + Math.random() * 2, 8, 6);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x3a5a2a, roughness: 1.0, flatShading: true
+        });
+        const hill = new THREE.Mesh(geo, mat);
+        hill.position.set(x, -1 + Math.random(), z);
+        hill.scale.y = 0.55 + Math.random() * 0.5;
+        hill.receiveShadow = true;
+        scene.add(hill);
+        environmentObjects.push(hill);
+    }
+}
+
+function buildTreesAndRocks() {
+    // Trees
+    for (let i = 0; i < 28; i++) {
+        const x = (Math.random() - 0.5) * 70;
+        const z = (Math.random() - 0.5) * 70;
+        if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
+        if (Math.sqrt(x * x + z * z) > 42) continue;
+
+        const tree = new THREE.Group();
+        const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2.5, 6);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.95 });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 1.25;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        const leafGeo = new THREE.ConeGeometry(1.3, 3, 7);
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d5016, roughness: 0.85 });
+        const leaves = new THREE.Mesh(leafGeo, leafMat);
+        leaves.position.y = 3.5;
+        leaves.castShadow = true;
+        tree.add(leaves);
+
+        tree.position.set(x, 0, z);
+        tree.scale.setScalar(0.75 + Math.random() * 0.6);
+        scene.add(tree);
+        environmentObjects.push(tree);
+    }
+    // Rocks
+    for (let i = 0; i < 15; i++) {
+        const x = (Math.random() - 0.5) * 70;
+        const z = (Math.random() - 0.5) * 70;
+        if (Math.abs(x) < 6 && Math.abs(z) < 6) continue;
+        if (Math.sqrt(x * x + z * z) > 42) continue;
+        const geo = new THREE.DodecahedronGeometry(0.5 + Math.random() * 0.7, 0);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x808080, roughness: 0.95, flatShading: true
+        });
+        const rock = new THREE.Mesh(geo, mat);
+        rock.position.set(x, 0.3, z);
+        rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        rock.castShadow = true;
+        rock.receiveShadow = true;
+        scene.add(rock);
+        environmentObjects.push(rock);
     }
 }
 
 // ============================================================
-// INPUT
+// LEVEL 2: SHOPS & STALLS
+// ============================================================
+function buildShops() {
+    const colors = [0xE74C3C, 0xF39C12, 0x27AE60, 0x2980B9, 0x8E44AD, 0xD35400];
+    for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const r = 38;
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+
+        const shop = new THREE.Group();
+        const c = colors[i % colors.length];
+
+        // Building
+        const baseGeo = new THREE.BoxGeometry(4, 4, 3.5);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.85 });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = 2;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        shop.add(base);
+
+        // Roof
+        const roofGeo = new THREE.ConeGeometry(3.5, 1.8, 4);
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: c, roughness: 0.7, flatShading: true
+        });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = 4.9;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        shop.add(roof);
+
+        // Sign
+        const signGeo = new THREE.BoxGeometry(3, 0.7, 0.15);
+        const signMat = new THREE.MeshStandardMaterial({
+            color: c, emissive: c, emissiveIntensity: 0.5
+        });
+        const sign = new THREE.Mesh(signGeo, signMat);
+        sign.position.set(0, 3.3, 1.83);
+        shop.add(sign);
+
+        // Windows
+        for (let w = 0; w < 2; w++) {
+            const winGeo = new THREE.PlaneGeometry(0.9, 0.9);
+            const winMat = new THREE.MeshStandardMaterial({
+                color: 0x87CEEB, emissive: 0x445577, emissiveIntensity: 0.4
+            });
+            const win = new THREE.Mesh(winGeo, winMat);
+            win.position.set((w - 0.5) * 1.2, 2.3, 1.76);
+            shop.add(win);
+        }
+
+        // Door
+        const doorGeo = new THREE.PlaneGeometry(0.95, 1.85);
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(0, 0.93, 1.76);
+        shop.add(door);
+
+        // Awning
+        const awnGeo = new THREE.BoxGeometry(3.8, 0.12, 1.1);
+        const awnMat = new THREE.MeshStandardMaterial({ color: c });
+        const awning = new THREE.Mesh(awnGeo, awnMat);
+        awning.position.set(0, 2.9, 2.2);
+        awning.rotation.x = -0.25;
+        shop.add(awning);
+
+        shop.position.set(x, 0, z);
+        shop.lookAt(0, 0, 0);
+        scene.add(shop);
+        environmentObjects.push(shop);
+    }
+}
+
+function buildStalls() {
+    const colors = [0xFF6B6B, 0xFFD93D, 0x6BCB77, 0x4D96FF, 0xFF8C42];
+    for (let i = 0; i < 14; i++) {
+        const angle = (i / 14) * Math.PI * 2;
+        const r = 14 + Math.random() * 10;
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+
+        const stall = new THREE.Group();
+
+        // Pole
+        const poleGeo = new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.y = 1.3;
+        pole.castShadow = true;
+        stall.add(pole);
+
+        // Roof (pyramid)
+        const roofGeo = new THREE.ConeGeometry(1.6, 1.1, 4);
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: colors[i % colors.length], roughness: 0.7, flatShading: true,
+            side: THREE.DoubleSide
+        });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = 2.95;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        stall.add(roof);
+
+        // Table
+        const tableGeo = new THREE.BoxGeometry(1.3, 0.1, 0.9);
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
+        const table = new THREE.Mesh(tableGeo, tableMat);
+        table.position.y = 1.05;
+        table.castShadow = true;
+        table.receiveShadow = true;
+        stall.add(table);
+
+        // Goods on table
+        for (let j = 0; j < 4; j++) {
+            const gGeo = new THREE.SphereGeometry(0.1 + Math.random() * 0.08, 8, 6);
+            const gMat = new THREE.MeshStandardMaterial({
+                color: [0xff0000, 0xffff00, 0x00ff00, 0xff8800][j % 4]
+            });
+            const good = new THREE.Mesh(gGeo, gMat);
+            good.position.set((j - 1.5) * 0.28, 1.2, 0);
+            good.castShadow = true;
+            stall.add(good);
+        }
+
+        stall.position.set(x, 0, z);
+        stall.lookAt(0, 0, 0);
+        scene.add(stall);
+        environmentObjects.push(stall);
+    }
+}
+
+// ============================================================
+// LEVEL 3: KERATON
+// ============================================================
+function buildKeraton() {
+    // Courtyard
+    const courtyardGeo = new THREE.CircleGeometry(30, 40);
+    const courtyardMat = new THREE.MeshStandardMaterial({
+        color: 0xE8C860, roughness: 0.75, metalness: 0.1
+    });
+    const courtyard = new THREE.Mesh(courtyardGeo, courtyardMat);
+    courtyard.rotation.x = -Math.PI / 2;
+    courtyard.position.y = 0.02;
+    courtyard.receiveShadow = true;
+    scene.add(courtyard);
+    environmentObjects.push(courtyard);
+
+    // Keraton building
+    const keraton = new THREE.Group();
+
+    const bodyGeo = new THREE.BoxGeometry(16, 8, 12);
+    const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0xF4D03F, roughness: 0.65, metalness: 0.12
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 4;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    keraton.add(body);
+
+    // Tiered roofs
+    for (let i = 0; i < 3; i++) {
+        const w = 18 - i * 3;
+        const d = 14 - i * 2.5;
+        const roofGeo = new THREE.ConeGeometry(Math.max(w, d) / 1.6, 2.8, 4);
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: 0xCC5500, roughness: 0.6, flatShading: true
+        });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = 8 + i * 2;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        keraton.add(roof);
+    }
+
+    // Golden dome top
+    const topGeo = new THREE.SphereGeometry(0.9, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+    const topMat = new THREE.MeshStandardMaterial({
+        color: 0xFFD700, emissive: 0x553300, emissiveIntensity: 0.5,
+        metalness: 0.95, roughness: 0.2
+    });
+    const top = new THREE.Mesh(topGeo, topMat);
+    top.position.y = 14.5;
+    keraton.add(top);
+
+    // Flagpole + flag
+    const poleGeo = new THREE.CylinderGeometry(0.1, 0.15, 6, 8);
+    const poleMat = new THREE.MeshStandardMaterial({
+        color: 0xFFD700, metalness: 0.9, roughness: 0.2
+    });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.y = 18;
+    keraton.add(pole);
+
+    const flagGeo = new THREE.PlaneGeometry(1.6, 1.1);
+    const flagMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, side: THREE.DoubleSide });
+    const flag = new THREE.Mesh(flagGeo, flagMat);
+    flag.position.set(0.9, 20, 0);
+    keraton.add(flag);
+
+    // Door
+    const doorGeo = new THREE.BoxGeometry(2, 5, 0.3);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.6 });
+    const door = new THREE.Mesh(doorGeo, doorMat);
+    door.position.set(0, 2.5, 6.1);
+    keraton.add(door);
+
+    // Pillars
+    for (let i = 0; i < 6; i++) {
+        const pGeo = new THREE.CylinderGeometry(0.35, 0.4, 8, 10);
+        const pMat = new THREE.MeshStandardMaterial({
+            color: 0xFFD700, metalness: 0.7, roughness: 0.3
+        });
+        const pillar = new THREE.Mesh(pGeo, pMat);
+        const px = (i < 3 ? -6 + i * 6 : -6 + (i - 3) * 6);
+        const pz = i < 3 ? 6.2 : -6.2;
+        pillar.position.set(px, 4, pz);
+        pillar.castShadow = true;
+        keraton.add(pillar);
+    }
+
+    keraton.position.set(0, 0, -8);
+    scene.add(keraton);
+    environmentObjects.push(keraton);
+
+    // Masjid
+    const masjid = new THREE.Group();
+    const mBodyGeo = new THREE.BoxGeometry(6, 5, 6);
+    const mBodyMat = new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.75 });
+    const mBody = new THREE.Mesh(mBodyGeo, mBodyMat);
+    mBody.position.y = 2.5;
+    mBody.castShadow = true;
+    mBody.receiveShadow = true;
+    masjid.add(mBody);
+
+    const kubahGeo = new THREE.SphereGeometry(3.2, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2);
+    const kubahMat = new THREE.MeshStandardMaterial({
+        color: 0x1E8449, roughness: 0.5, metalness: 0.35
+    });
+    const kubah = new THREE.Mesh(kubahGeo, kubahMat);
+    kubah.position.y = 7;
+    kubah.castShadow = true;
+    masjid.add(kubah);
+
+    const towerGeo = new THREE.CylinderGeometry(0.6, 0.7, 8.5, 10);
+    const tower = new THREE.Mesh(towerGeo, mBodyMat);
+    tower.position.set(4.2, 4.25, 0);
+    tower.castShadow = true;
+    masjid.add(tower);
+
+    const mTop = new THREE.Mesh(
+        new THREE.SphereGeometry(0.85, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+        kubahMat
+    );
+    mTop.position.set(4.2, 8.5, 0);
+    masjid.add(mTop);
+
+    masjid.position.set(-20, 0, -15);
+    scene.add(masjid);
+    environmentObjects.push(masjid);
+
+    // Lamps
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const r = 22;
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+
+        const lampGroup = new THREE.Group();
+
+        const poleGeo = new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.85, roughness: 0.25 });
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.y = 1.6;
+        lampGroup.add(pole);
+
+        const lampGeo = new THREE.SphereGeometry(0.32, 12, 10);
+        const lampMat = new THREE.MeshStandardMaterial({
+            color: 0xFFD700, emissive: 0xFFD700, emissiveIntensity: 1.1,
+            transparent: true, opacity: 0.92
+        });
+        const lamp = new THREE.Mesh(lampGeo, lampMat);
+        lamp.position.y = 3.3;
+        lampGroup.add(lamp);
+
+        const pl = new THREE.PointLight(0xFFD700, 1.2, 12);
+        pl.position.y = 3.3;
+        lampGroup.add(pl);
+
+        lampGroup.position.set(x, 0, z);
+        scene.add(lampGroup);
+        environmentObjects.push(lampGroup);
+    }
+
+    // Flowers
+    for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = 25 + Math.random() * 8;
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+
+        const f = new THREE.Group();
+        const stemGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.6, 5);
+        const stemMat = new THREE.MeshStandardMaterial({ color: 0x2d5016 });
+        const stem = new THREE.Mesh(stemGeo, stemMat);
+        stem.position.y = 0.3;
+        f.add(stem);
+
+        const petalGeo = new THREE.SphereGeometry(0.16, 8, 6);
+        const petalMat = new THREE.MeshStandardMaterial({
+            color: [0xff5577, 0xffaa00, 0xdd44ff, 0xff8866, 0xffdd00][i % 5],
+            emissive: 0x330000, emissiveIntensity: 0.25
+        });
+        const petal = new THREE.Mesh(petalGeo, petalMat);
+        petal.position.y = 0.68;
+        f.add(petal);
+
+        f.position.set(x, 0, z);
+        scene.add(f);
+        environmentObjects.push(f);
+    }
+}
+
+// ============================================================
+// TREASURES
+// ============================================================
+function spawnTreasures(list) {
+    list.forEach((t, i) => {
+        const group = new THREE.Group();
+
+        // Crystal
+        const geo = new THREE.OctahedronGeometry(0.65, 0);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0xFFD700, emissive: 0xFFAA00, emissiveIntensity: 0.8,
+            metalness: 0.9, roughness: 0.15, transparent: true, opacity: 0.95
+        });
+        const crystal = new THREE.Mesh(geo, mat);
+        crystal.position.y = 1.1;
+        crystal.castShadow = true;
+        group.add(crystal);
+
+        // Ring
+        const ringGeo = new THREE.TorusGeometry(0.9, 0.06, 8, 26);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0xFFD700, transparent: true, opacity: 0.7
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.y = 1.1;
+        ring.rotation.x = Math.PI / 2;
+        group.add(ring);
+
+        // Point light
+        const pl = new THREE.PointLight(0xFFD700, 1.2, 7);
+        pl.position.y = 1.1;
+        group.add(pl);
+
+        // Base
+        const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.18, 10);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = 0.09;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        group.position.set(t.position.x, 0, t.position.z);
+        scene.add(group);
+
+        treasures.push({
+            mesh: group,
+            crystal: crystal,
+            ring: ring,
+            light: pl,
+            data: t,
+            collected: false,
+            baseY: 1.1
+        });
+    });
+}
+
+function createParticles(level) {
+    const count = level === 1 ? 60 : 40;
+    const color = level === 1 ? 0xaaffaa : level === 2 ? 0xffd700 : 0xffe4b5;
+    for (let i = 0; i < count; i++) {
+        const geo = new THREE.SphereGeometry(0.08, 5, 5);
+        const mat = new THREE.MeshBasicMaterial({
+            color: color, transparent: true, opacity: 0.5
+        });
+        const p = new THREE.Mesh(geo, mat);
+        p.position.set(
+            (Math.random() - 0.5) * 70,
+            Math.random() * 12,
+            (Math.random() - 0.5) * 70
+        );
+        p.userData = { offset: Math.random() * Math.PI * 2 };
+        scene.add(p);
+        particles.push(p);
+    }
+}
+
+// ============================================================
+// CONTROLS
 // ============================================================
 function setupControls() {
     let active = false, cx = 0, cy = 0;
@@ -645,15 +1493,15 @@ function setupControls() {
         e.preventDefault(); initAudio();
         active = true;
         const r = joystickArea.getBoundingClientRect();
-        cx = r.left + r.width/2; cy = r.top + r.height/2;
+        cx = r.left + r.width / 2; cy = r.top + r.height / 2;
     }
     function move(e) {
         if (!active) return;
         e.preventDefault();
         const p = getPos(e);
         let dx = p.x - cx, dy = p.y - cy;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d > maxD) { dx = dx/d * maxD; dy = dy/d * maxD; }
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > maxD) { dx = dx / d * maxD; dy = dy / d * maxD; }
         joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
         joystickInput.x = dx / maxD;
         joystickInput.y = dy / maxD;
@@ -664,9 +1512,9 @@ function setupControls() {
         joystickKnob.style.transform = 'translate(-50%, -50%)';
         joystickInput.x = 0; joystickInput.y = 0;
     }
-    joystickArea.addEventListener('touchstart', start, { passive:false });
-    document.addEventListener('touchmove', move, { passive:false });
-    document.addEventListener('touchend', end, { passive:false });
+    joystickArea.addEventListener('touchstart', start, { passive: false });
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end, { passive: false });
     joystickArea.addEventListener('mousedown', start);
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', end);
@@ -688,7 +1536,7 @@ function setupControls() {
     });
     document.addEventListener('keyup', (e) => {
         const k = e.key.toLowerCase();
-        if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) {
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
             joystickInput.x = 0; joystickInput.y = 0;
         }
     });
@@ -697,56 +1545,153 @@ function setupControls() {
 // ============================================================
 // UPDATE
 // ============================================================
-let lastTime = 0;
 function update(delta) {
     if (GameState.isPaused || GameState.isTransitioning) return;
 
-    // Waktu siang-malam (level 1 saja)
+    // Time cycle (level 1)
     if (GameState.currentLevel === 1) {
         GameState.timeOfDay = (GameState.timeOfDay + delta * GameState.timeSpeed) % 1;
         const t = GameState.timeOfDay;
-        const sunHeight = Math.sin(t * Math.PI * 2 - Math.PI/2);
-        // Ambang lebih longgar — malam hanya saat matahari benar-benar di bawah
+        const sunHeight = Math.sin(t * Math.PI * 2 - Math.PI / 2);
         GameState.isNight = sunHeight < -0.35;
+        applyTimeCycle(sunHeight, t);
         updateClockHUD(t);
     }
 
     // Player movement
-    const speed = 8 * delta;
-    const isMoving = Math.abs(joystickInput.x) > 0.05 || Math.abs(joystickInput.y) > 0.05;
-    if (isMoving) {
-        const bounds = GameState.currentLevel === 3 ? 28 : 42;
-        world.player.x += joystickInput.x * speed;
-        world.player.z += joystickInput.y * speed;
-        world.player.x = Math.max(-bounds, Math.min(bounds, world.player.x));
-        world.player.z = Math.max(-bounds, Math.min(bounds, world.player.z));
-        world.player.rot = Math.atan2(joystickInput.x, joystickInput.y);
-        world.player.walkPhase += delta * 10;
-    } else {
-        world.player.walkPhase *= 0.9;
+    if (playerGroup) {
+        const speed = 8 * delta;
+        const isMoving = Math.abs(joystickInput.x) > 0.05 || Math.abs(joystickInput.y) > 0.05;
+
+        // Direction based on camera
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+        const moveX = forward.x * (-joystickInput.y) + right.x * joystickInput.x;
+        const moveZ = forward.z * (-joystickInput.y) + right.z * joystickInput.x;
+
+        if (isMoving) {
+            const bounds = GameState.currentLevel === 3 ? 26 : 40;
+            const nx = Math.max(-bounds, Math.min(bounds, playerGroup.position.x + moveX * speed));
+            const nz = Math.max(-bounds, Math.min(bounds, playerGroup.position.z + moveZ * speed));
+            playerGroup.position.x = nx;
+            playerGroup.position.z = nz;
+
+            const targetRot = Math.atan2(moveX, moveZ);
+            let diff = targetRot - playerGroup.rotation.y;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            playerGroup.rotation.y += diff * 0.2;
+
+            // Walk animation
+            const wt = Date.now() * 0.012;
+            const swing = Math.sin(wt) * 0.5;
+            if (playerGroup.userData.leftArm) {
+                playerGroup.userData.leftArm.rotation.x = swing;
+                playerGroup.userData.rightArm.rotation.x = -swing;
+                playerGroup.userData.leftLeg.rotation.x = -swing * 0.6;
+                playerGroup.userData.rightLeg.rotation.x = swing * 0.6;
+            }
+            playerGroup.position.y = Math.abs(Math.sin(wt)) * 0.06;
+        } else {
+            if (playerGroup.userData.leftArm) {
+                playerGroup.userData.leftArm.rotation.x *= 0.9;
+                playerGroup.userData.rightArm.rotation.x *= 0.9;
+                playerGroup.userData.leftLeg.rotation.x *= 0.9;
+                playerGroup.userData.rightLeg.rotation.x *= 0.9;
+            }
+            playerGroup.position.y *= 0.9;
+        }
     }
 
-    // Camera follow
-    world.camera.x += (world.player.x - world.camera.x) * 0.08;
-    world.camera.z += (world.player.z + 12 - world.camera.z) * 0.08;
-
-    // Animals
-    world.animals.forEach(a => {
-        a.wanderTimer += delta;
-        if (a.wanderTimer > 2 + Math.random() * 2) {
-            a.wanderTimer = 0;
-            a.wanderAngle = Math.random() * Math.PI * 2;
+    // Treasures animation
+    const time = Date.now() * 0.001;
+    treasures.forEach(t => {
+        if (!t.collected) {
+            t.crystal.rotation.y += delta * 2;
+            t.ring.rotation.z += delta * 1.5;
+            const bounce = Math.sin(time * 2 + t.data.position.x) * 0.18;
+            t.crystal.position.y = t.baseY + bounce;
+            t.light.position.y = t.baseY + bounce;
         }
-        const sp = a.type === 'cat' ? 0.8 : 1.2;
-        const nx = a.x + Math.cos(a.wanderAngle) * sp * delta;
-        const nz = a.z + Math.sin(a.wanderAngle) * sp * delta;
-        const dx = nx - a.homeX, dz = nz - a.homeZ;
-        if (Math.sqrt(dx*dx + dz*dz) < 5) { a.x = nx; a.z = nz; }
-        else { a.wanderAngle += Math.PI; }
     });
 
-    // Treasures
-    world.treasures.forEach(t => { t.phase += delta * 2; });
+    // Particles
+    particles.forEach(p => {
+        p.position.y += Math.sin(time * 0.5 + p.userData.offset) * 0.01;
+        p.position.x += Math.cos(time * 0.3 + p.userData.offset) * 0.01;
+        p.position.y = Math.max(0.5, Math.min(15, p.position.y));
+    });
+
+    // Animals
+    updateAnimals(delta, time);
+}
+
+function applyTimeCycle(sunHeight, t) {
+    const L = GAME_DATA.levels[1];
+    const dayColor = new THREE.Color(L.bgColorDay);
+    const nightColor = new THREE.Color(L.bgColorNight);
+
+    // Blend: 1 = siang penuh, 0 = malam penuh
+    let blend;
+    if (sunHeight > -0.1) {
+        blend = Math.min(1, (sunHeight + 0.1) / 0.3);
+    } else if (sunHeight < -0.35) {
+        blend = 0;
+    } else {
+        blend = (sunHeight + 0.35) / 0.25;
+    }
+    blend = Math.max(0, Math.min(1, blend));
+
+    scene.background = nightColor.clone().lerp(dayColor, blend);
+
+    const dayFog = new THREE.Color(L.fogColorDay);
+    const nightFog = new THREE.Color(L.fogColorNight);
+    scene.fog.color = nightFog.clone().lerp(dayFog, blend);
+
+    // Light intensity: siang terang, malam lembut
+    ambientLight.intensity = 0.25 + blend * 0.55;      // 0.25 → 0.8
+    dirLight.intensity = 0.15 + blend * 1.15;           // 0.15 → 1.3
+    hemiLight.intensity = 0.15 + blend * 0.45;          // 0.15 → 0.6
+
+    // Sun & Moon position
+    if (sunMesh) {
+        const r = 70;
+        sunMesh.position.set(
+            Math.cos(t * Math.PI * 2) * r,
+            Math.sin(t * Math.PI * 2 - Math.PI / 2) * r,
+            Math.sin(t * Math.PI * 2) * r * 0.3
+        );
+        sunMesh.visible = sunHeight > -0.3;
+    }
+    if (moonMesh) {
+        const r = 70;
+        moonMesh.position.set(
+            Math.cos(t * Math.PI * 2 + Math.PI) * r,
+            Math.sin(t * Math.PI * 2 + Math.PI / 2) * r,
+            Math.sin(t * Math.PI * 2 + Math.PI) * r * 0.3
+        );
+        moonMesh.visible = sunHeight < 0.1;
+    }
+
+    // dirLight follow sun/moon
+    if (sunHeight > 0.1 && sunMesh) {
+        dirLight.position.copy(sunMesh.position);
+    } else if (moonMesh && moonMesh.visible) {
+        dirLight.position.copy(moonMesh.position);
+    }
+    // Warna cahaya
+    if (sunHeight > 0.2) {
+        dirLight.color.setHex(0xfff2cc);
+    } else if (sunHeight > -0.2) {
+        dirLight.color.setHex(0xffa055); // sunset warm
+    } else {
+        dirLight.color.setHex(0xb0c0ff); // moonlight cool
+    }
 }
 
 function updateClockHUD(t) {
@@ -761,535 +1706,24 @@ function updateClockHUD(t) {
     clockText.textContent = text;
 }
 
-// ============================================================
-// RENDER
-// ============================================================
-function render() {
-    const L = GAME_DATA.levels[GameState.currentLevel];
-    if (!L) return;
-
-    // ------ Background langit ------
-    let sky = L.skyDay;
-    let nightOverlayAlpha = 0;
-    let sunHeight = 0;
-
-    if (GameState.currentLevel === 1) {
-        const t = GameState.timeOfDay;
-        sunHeight = Math.sin(t * Math.PI * 2 - Math.PI/2);
-
-        // Blend: 1 = siang penuh, 0 = malam penuh
-        let blend;
-        if (sunHeight > -0.1) {
-            blend = Math.min(1, (sunHeight + 0.1) / 0.3);
-        } else if (sunHeight < -0.35) {
-            blend = 0;
-        } else {
-            blend = (sunHeight + 0.35) / 0.25;
-        }
-        blend = Math.max(0, Math.min(1, blend));
-
-        sky = lerpColor(L.skyNight, L.skyDay, blend);
-        // Night overlay: hanya saat malam, max 0.35 (lebih lembut)
-        nightOverlayAlpha = (1 - blend) * 0.35;
-        if (nightOverlayAlpha < 0.03) nightOverlayAlpha = 0;
-    }
-
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // ------ Matahari / Bulan (level 1) ------
-    if (GameState.currentLevel === 1) {
-        if (sunHeight > 0) {
-            const sunX = canvasW * 0.75;
-            const sunY = canvasH * 0.15;
-            const sunAlpha = Math.min(1, sunHeight * 1.5);
-            const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 140);
-            sunGlow.addColorStop(0, `rgba(255, 245, 200, ${sunAlpha * 0.9})`);
-            sunGlow.addColorStop(0.3, `rgba(255, 220, 120, ${sunAlpha * 0.5})`);
-            sunGlow.addColorStop(1, 'rgba(255, 200, 80, 0)');
-            ctx.fillStyle = sunGlow;
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, 140, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = `rgba(255, 250, 220, ${sunAlpha})`;
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, 32, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            const moonX = canvasW * 0.75;
-            const moonY = canvasH * 0.15;
-            const moonAlpha = Math.min(1, -sunHeight * 1.5);
-            const moonGlow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 100);
-            moonGlow.addColorStop(0, `rgba(220, 230, 255, ${moonAlpha * 0.7})`);
-            moonGlow.addColorStop(1, 'rgba(180, 190, 230, 0)');
-            ctx.fillStyle = moonGlow;
-            ctx.beginPath();
-            ctx.arc(moonX, moonY, 100, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = `rgba(230, 240, 255, ${moonAlpha})`;
-            ctx.beginPath();
-            ctx.arc(moonX, moonY, 26, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    // ------ Ground ------
-    ctx.fillStyle = L.ground;
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // ------ Camera transform ------
-    const cx = canvasW / 2;
-    const cy = canvasH * 0.68;
-    const scale = Math.min(canvasW, canvasH) / 55;
-
-    function w2s(wx, wz) {
-        return {
-            x: cx + (wx - world.camera.x) * scale,
-            y: cy + (wz - world.camera.z) * scale
-        };
-    }
-
-    // Grid pattern
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let gx = -50; gx <= 50; gx += 5) {
-        const s = w2s(gx, -50);
-        const e = w2s(gx, 50);
-        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y); ctx.stroke();
-    }
-    for (let gz = -50; gz <= 50; gz += 5) {
-        const s = w2s(-50, gz);
-        const e = w2s(50, gz);
-        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y); ctx.stroke();
-    }
-
-    // Sort renderables by z
-    const renderables = [];
-    world.envObjects.forEach(o => {
-        if (Math.abs(o.x) > 55 || Math.abs(o.z) > 55) return;
-        renderables.push({ z: o.z, type: 'env', data: o });
-    });
-    world.treasures.forEach(t => {
-        if (t.collected) return;
-        renderables.push({ z: t.z, type: 'treasure', data: t });
-    });
-    world.animals.forEach(a => {
-        renderables.push({ z: a.z, type: 'animal', data: a });
-    });
-    renderables.push({ z: world.player.z, type: 'player' });
-    renderables.sort((a, b) => a.z - b.z);
-
-    renderables.forEach(r => {
-        const s = w2s(r.type === 'player' ? world.player.x : r.data.x, r.z);
-        if (r.type === 'env') drawEnv(r.data, s, scale);
-        else if (r.type === 'treasure') drawTreasure(r.data, s, scale);
-        else if (r.type === 'animal') drawAnimal(r.data, s, scale);
-        else if (r.type === 'player') drawPlayer(s, scale);
-    });
-
-    // ------ Night overlay ------
-    if (nightOverlayAlpha > 0) {
-        ctx.fillStyle = `rgba(0, 0, 40, ${nightOverlayAlpha})`;
-        ctx.fillRect(0, 0, canvasW, canvasH);
-    }
-}
-
-function drawEnv(o, s, scale) {
-    if (o.type === 'mountain') {
-        const size = o.size * scale;
-        const height = o.height * scale;
-        ctx.fillStyle = o.color;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - height);
-        ctx.lineTo(s.x - size, s.y + size*0.3);
-        ctx.lineTo(s.x + size, s.y + size*0.3);
-        ctx.closePath();
-        ctx.fill();
-        if (o.hasSnow && o.height > 20) {
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.moveTo(s.x, s.y - height);
-            ctx.lineTo(s.x - size * 0.35, s.y - height + height * 0.22);
-            ctx.lineTo(s.x + size * 0.35, s.y - height + height * 0.22);
-            ctx.closePath();
-            ctx.fill();
-        }
-    } else if (o.type === 'tree') {
-        const sz = o.size * scale * 2;
-        ctx.fillStyle = '#5C4033';
-        ctx.fillRect(s.x - sz*0.08, s.y - sz*0.3, sz*0.16, sz*0.3);
-        ctx.fillStyle = o.color;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - sz);
-        ctx.lineTo(s.x - sz*0.5, s.y - sz*0.2);
-        ctx.lineTo(s.x + sz*0.5, s.y - sz*0.2);
-        ctx.closePath();
-        ctx.fill();
-    } else if (o.type === 'rock') {
-        const sz = o.size * scale;
-        ctx.fillStyle = o.color;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - sz*0.3, sz*0.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.15, s.y - sz*0.3, sz*0.6, 0, Math.PI, false);
-        ctx.fill();
-    } else if (o.type === 'shop') {
-        const sz = o.size * scale;
-        ctx.fillStyle = '#F5DEB3';
-        ctx.fillRect(s.x - sz*0.5, s.y - sz, sz, sz);
-        ctx.fillStyle = o.color;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - sz*1.35);
-        ctx.lineTo(s.x - sz*0.6, s.y - sz);
-        ctx.lineTo(s.x + sz*0.6, s.y - sz);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(s.x - sz*0.15, s.y - sz*0.55, sz*0.3, sz*0.55);
-        ctx.fillStyle = 'rgba(135,206,235,0.8)';
-        ctx.fillRect(s.x + sz*0.15, s.y - sz*0.75, sz*0.2, sz*0.2);
-        ctx.fillRect(s.x - sz*0.35, s.y - sz*0.75, sz*0.2, sz*0.2);
-    } else if (o.type === 'stall') {
-        const sz = o.size * scale;
-        ctx.fillStyle = '#DEB887';
-        ctx.fillRect(s.x - sz*0.6, s.y - sz*0.3, sz*1.2, sz*0.15);
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(s.x - sz*0.05, s.y - sz*1.2, sz*0.1, sz*1.0);
-        ctx.fillStyle = o.color;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - sz*1.5);
-        ctx.lineTo(s.x - sz*0.7, s.y - sz*1.15);
-        ctx.lineTo(s.x, s.y - sz*0.8);
-        ctx.lineTo(s.x + sz*0.7, s.y - sz*1.15);
-        ctx.closePath();
-        ctx.fill();
-    } else if (o.type === 'keraton') {
-        const sz = o.size * scale;
-        ctx.fillStyle = '#F4D03F';
-        ctx.fillRect(s.x - sz*0.5, s.y - sz*0.6, sz, sz*0.6);
-        ctx.strokeStyle = '#B8860B';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(s.x - sz*0.5, s.y - sz*0.6, sz, sz*0.6);
-        for (let i = 0; i < 3; i++) {
-            const w = sz * (0.6 - i * 0.13);
-            const h = sz * 0.18;
-            const yTop = s.y - sz*0.6 - i * h;
-            ctx.fillStyle = '#CC5500';
-            ctx.beginPath();
-            ctx.moveTo(s.x, yTop - h*0.7);
-            ctx.lineTo(s.x - w, yTop);
-            ctx.lineTo(s.x + w, yTop);
-            ctx.closePath();
-            ctx.fill();
-        }
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - sz*0.6 - sz*0.55, sz*0.06, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - sz*0.6 - sz*0.55);
-        ctx.lineTo(s.x, s.y - sz*0.6 - sz*0.9);
-        ctx.stroke();
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - sz*0.6 - sz*0.9);
-        ctx.lineTo(s.x + sz*0.15, s.y - sz*0.6 - sz*0.82);
-        ctx.lineTo(s.x, s.y - sz*0.6 - sz*0.75);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(s.x - sz*0.08, s.y - sz*0.3, sz*0.16, sz*0.3);
-        ctx.fillStyle = '#FFD700';
-        [-0.4, 0.4].forEach(px => {
-            ctx.fillRect(s.x + sz*px - sz*0.03, s.y - sz*0.6, sz*0.06, sz*0.6);
-        });
-    } else if (o.type === 'masjid') {
-        const sz = o.size * scale;
-        ctx.fillStyle = '#F5DEB3';
-        ctx.fillRect(s.x - sz*0.5, s.y - sz*0.6, sz, sz*0.6);
-        ctx.strokeStyle = '#8B7355';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(s.x - sz*0.5, s.y - sz*0.6, sz, sz*0.6);
-        ctx.fillStyle = '#1E8449';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - sz*0.6, sz*0.35, Math.PI, 0);
-        ctx.fill();
-        ctx.fillStyle = '#F5DEB3';
-        ctx.fillRect(s.x + sz*0.55, s.y - sz*1.3, sz*0.12, sz*1.3);
-        ctx.fillStyle = '#1E8449';
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.61, s.y - sz*1.3, sz*0.1, Math.PI, 0);
-        ctx.fill();
-    } else if (o.type === 'lamp') {
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x, s.y - 20);
-        ctx.stroke();
-        const glow = 8 + Math.sin(Date.now() * 0.005) * 3;
-        const grd = ctx.createRadialGradient(s.x, s.y - 22, 0, s.x, s.y - 22, glow);
-        grd.addColorStop(0, 'rgba(255, 215, 0, 0.9)');
-        grd.addColorStop(1, 'rgba(255, 215, 0, 0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - 22, glow, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - 22, 5, 0, Math.PI * 2);
-        ctx.fill();
-    } else if (o.type === 'flower') {
-        const colors = ['#ff5577','#ffaa00','#dd44ff','#ff8866','#ffdd00'];
-        const idx = Math.floor(Math.abs(o.x + o.z)) % colors.length;
-        ctx.fillStyle = colors[idx];
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - 5, 4, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
-function drawTreasure(t, s, scale) {
-    const bob = Math.sin(t.phase) * 3;
-    const sy = s.y - 20 + bob;
-    const glow = 30 + Math.sin(t.phase * 1.5) * 8;
-    const grd = ctx.createRadialGradient(s.x, sy, 0, s.x, sy, glow);
-    grd.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
-    grd.addColorStop(0.5, 'rgba(255, 215, 0, 0.2)');
-    grd.addColorStop(1, 'rgba(255, 215, 0, 0)');
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.arc(s.x, sy, glow, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(s.x, sy, 22, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = '#FFD700';
-    ctx.beginPath();
-    ctx.moveTo(s.x, sy - 16);
-    ctx.lineTo(s.x - 10, sy);
-    ctx.lineTo(s.x, sy + 16);
-    ctx.lineTo(s.x + 10, sy);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#B8860B';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath();
-    ctx.moveTo(s.x, sy - 14);
-    ctx.lineTo(s.x - 4, sy - 4);
-    ctx.lineTo(s.x, sy);
-    ctx.lineTo(s.x + 4, sy - 4);
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawAnimal(a, s, scale) {
-    const sz = scale * 0.6;
-    if (a.type === 'cat') {
-        const bob = Math.sin(Date.now() * 0.003 + a.phase) * 1.5;
-        ctx.fillStyle = '#dd8844';
-        ctx.beginPath();
-        ctx.ellipse(s.x, s.y - sz*0.5 + bob, sz*0.7, sz*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.7, s.y - sz*0.6 + bob, sz*0.35, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(s.x + sz*0.55, s.y - sz*0.9 + bob);
-        ctx.lineTo(s.x + sz*0.6, s.y - sz*1.15 + bob);
-        ctx.lineTo(s.x + sz*0.7, s.y - sz*0.9 + bob);
-        ctx.closePath();
-        ctx.moveTo(s.x + sz*0.8, s.y - sz*0.9 + bob);
-        ctx.lineTo(s.x + sz*0.85, s.y - sz*1.15 + bob);
-        ctx.lineTo(s.x + sz*0.95, s.y - sz*0.9 + bob);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#00ff00';
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.75, s.y - sz*0.65 + bob, sz*0.06, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.85, s.y - sz*0.65 + bob, sz*0.06, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#dd8844';
-        ctx.lineWidth = sz*0.12;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(s.x - sz*0.7, s.y - sz*0.5 + bob);
-        ctx.quadraticCurveTo(s.x - sz*1.1, s.y - sz*0.7 + bob + Math.sin(Date.now()*0.005 + a.phase)*3,
-                              s.x - sz*0.95, s.y - sz*1.1 + bob);
-        ctx.stroke();
-    } else if (a.type === 'rabbit') {
-        const hop = Math.abs(Math.sin(Date.now() * 0.004 + a.phase)) * sz * 0.5;
-        const yOff = -hop;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.ellipse(s.x, s.y - sz*0.4 + yOff, sz*0.6, sz*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - sz*0.7 + yOff, sz*0.3, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(s.x - sz*0.15, s.y - sz*1.2 + yOff, sz*0.08, sz*0.3, -0.15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(s.x + sz*0.15, s.y - sz*1.2 + yOff, sz*0.08, sz*0.3, 0.15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#ffaaaa';
-        ctx.beginPath();
-        ctx.ellipse(s.x - sz*0.15, s.y - sz*1.2 + yOff, sz*0.04, sz*0.22, -0.15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(s.x + sz*0.15, s.y - sz*1.2 + yOff, sz*0.04, sz*0.22, 0.15, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(s.x - sz*0.1, s.y - sz*0.7 + yOff, sz*0.04, 0, Math.PI*2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(s.x + sz*0.1, s.y - sz*0.7 + yOff, sz*0.04, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#ffaaaa';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y - sz*0.62 + yOff, sz*0.04, 0, Math.PI*2);
-        ctx.fill();
-    }
-}
-
-function drawPlayer(s, scale) {
-    const sz = scale * 1.5;
-    const bob = Math.sin(world.player.walkPhase) * 2;
-    const px = s.x, py = s.y + bob;
-
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(px, py + 2, sz*0.6, sz*0.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#2F4F4F';
-    ctx.fillRect(px - sz*0.3, py - sz*0.9, sz*0.22, sz*0.6);
-    ctx.fillRect(px + sz*0.08, py - sz*0.9, sz*0.22, sz*0.6);
-
-    ctx.fillStyle = '#8B0000';
-    ctx.beginPath();
-    ctx.moveTo(px - sz*0.45, py - sz*1.5);
-    ctx.lineTo(px + sz*0.45, py - sz*1.5);
-    ctx.lineTo(px + sz*0.4, py - sz*0.9);
-    ctx.lineTo(px - sz*0.4, py - sz*0.9);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#5a0000';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.fillStyle = '#FFD700';
-    for (let i = 0; i < 3; i++) {
-        ctx.fillRect(px - sz*0.42, py - sz*1.35 + i * sz*0.15, sz*0.84, sz*0.06);
-    }
-
-    ctx.fillStyle = '#8B0000';
-    const armSwing = Math.sin(world.player.walkPhase) * sz*0.15;
-    ctx.save();
-    ctx.translate(px - sz*0.45, py - sz*1.4);
-    ctx.rotate(armSwing);
-    ctx.fillRect(-sz*0.08, 0, sz*0.16, sz*0.65);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(px + sz*0.45, py - sz*1.4);
-    ctx.rotate(-armSwing);
-    ctx.fillRect(-sz*0.08, 0, sz*0.16, sz*0.65);
-    ctx.restore();
-
-    ctx.fillStyle = '#DEB887';
-    ctx.beginPath();
-    ctx.arc(px, py - sz*1.7, sz*0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#a07050';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(px - sz*0.1, py - sz*1.75, sz*0.04, 0, Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(px + sz*0.1, py - sz*1.75, sz*0.04, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FF0000';
-    ctx.fillRect(px - sz*0.32, py - sz*2.05, sz*0.64, sz*0.12);
-    ctx.strokeStyle = '#800000';
-    ctx.strokeRect(px - sz*0.32, py - sz*2.05, sz*0.64, sz*0.12);
-
-    const featherColors = ['#FFD700', '#FF0000', '#FFD700'];
-    for (let i = -1; i <= 1; i++) {
-        ctx.save();
-        ctx.translate(px + i * sz*0.2, py - sz*2.1);
-        ctx.rotate(i * 0.35);
-        ctx.fillStyle = featherColors[i + 1];
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-sz*0.08, -sz*0.6);
-        ctx.lineTo(sz*0.08, -sz*0.6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-    }
-
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(px, py - sz*1.5, sz*0.25, 0, Math.PI);
-    ctx.stroke();
-}
-
-function lerpColor(a, b, t) {
-    const ah = a.replace('#', '');
-    const bh = b.replace('#', '');
-    const ar = parseInt(ah.substring(0, 2), 16);
-    const ag = parseInt(ah.substring(2, 4), 16);
-    const ab = parseInt(ah.substring(4, 6), 16);
-    const br = parseInt(bh.substring(0, 2), 16);
-    const bg = parseInt(bh.substring(2, 4), 16);
-    const bb = parseInt(bh.substring(4, 6), 16);
-    const rr = Math.round(ar + (br - ar) * t);
-    const rg = Math.round(ag + (bg - ag) * t);
-    const rb = Math.round(ab + (bb - ab) * t);
-    return '#' + [rr, rg, rb].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
-// ============================================================
-// MAIN LOOP
-// ============================================================
-function loop(timestamp) {
-    requestAnimationFrame(loop);
-    if (!GameState.gameStarted) return;
-    if (!lastTime) lastTime = timestamp;
-    const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
-    lastTime = timestamp;
-    update(delta);
-    render();
+function updateCamera() {
+    if (!playerGroup) return;
+    const target = playerGroup.position.clone();
+    target.y += 8;
+    target.z += 11;
+    camera.position.lerp(target, 0.08);
+    camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.3, playerGroup.position.z);
 }
 
 // ============================================================
 // TREASURE INTERACTION
 // ============================================================
 function checkNearbyTreasure() {
-    if (!GameState.gameStarted) return;
+    if (!playerGroup || GameState.isPaused) return;
     let nearest = null, minDist = 3.5;
-    world.treasures.forEach(t => {
+    treasures.forEach(t => {
         if (t.collected) return;
-        const dx = t.x - world.player.x;
-        const dz = t.z - world.player.z;
-        const d = Math.sqrt(dx*dx + dz*dz);
+        const d = playerGroup.position.distanceTo(t.mesh.position);
         if (d < minDist) { minDist = d; nearest = t; }
     });
     if (nearest) collectTreasure(nearest);
@@ -1301,6 +1735,7 @@ function checkNearbyTreasure() {
 
 function collectTreasure(t) {
     t.collected = true;
+    scene.remove(t.mesh);
     playTreasureSound();
     GameState.treasuresCollected++;
     GameState.discoveredItems.push(t.data.id);
@@ -1324,21 +1759,21 @@ function showFloatText(text) {
 }
 
 function showHint() {
-    const uncollected = world.treasures.filter(t => !t.collected);
+    const uncollected = treasures.filter(t => !t.collected);
     if (uncollected.length === 0) {
         showHintBubble("✨ Semua harta sudah ditemukan!");
         return;
     }
     let nearest = null, minDist = Infinity;
     uncollected.forEach(t => {
-        const dx = t.x - world.player.x;
-        const dz = t.z - world.player.z;
-        const d = Math.sqrt(dx*dx + dz*dz);
+        const d = playerGroup.position.distanceTo(t.mesh.position);
         if (d < minDist) { minDist = d; nearest = t; }
     });
     if (nearest) {
         const dir = minDist < 12 ? "sangat dekat" : "agak jauh";
         showHintBubble(`💎 Harta ${dir} (${Math.round(minDist)}m). Ikuti cahaya keemasan!`);
+        nearest.mesh.scale.setScalar(1.6);
+        setTimeout(() => { if (nearest.mesh) nearest.mesh.scale.setScalar(1); }, 1500);
     }
 }
 
@@ -1414,7 +1849,7 @@ function levelComplete() {
             <div class="info-box"><h3>✅ Semua Harta Keraton Ditemukan!</h3>
             <p>Skor Total: <strong style="color:#ffd700">${GameState.score}</strong></p></div>
             <div class="info-box"><h3>👑 Selamat!</h3>
-            <p>Anda menyelesaikan seluruh petualangan Treja!</p></div>
+            <p>Anda menyelesaikan seluruh petualangan Treja 3D!</p></div>
         `;
         btns.innerHTML = `<button class="btn-modal btn-primary" id="btnFinish" type="button">🔄 Main Lagi</button>`;
         document.getElementById('btnFinish').onclick = () => { modalComplete.classList.remove('active'); resetGame(); };
@@ -1525,7 +1960,7 @@ function startLevel(levelNum) {
     GameState.isPaused = false;
     GameState.treasuresCollected = 0;
     GameState.isTransitioning = true;
-    GameState.timeOfDay = levelNum === 1 ? 0.2 : 0;
+    GameState.timeOfDay = levelNum === 1 ? 0.22 : 0;
     GameState.isNight = false;
     [modalInfo, modalComplete, modalQuiz].forEach(m => m.classList.remove('active'));
     buildLevel(levelNum);
@@ -1556,7 +1991,7 @@ function resetGame() {
     GameState.treasuresCollected = 0;
     GameState.discoveredItems = [];
     GameState.isPaused = false;
-    GameState.timeOfDay = 0.2;
+    GameState.timeOfDay = 0.22;
     GameState.isNight = false;
     document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
     buildLevel(1);
@@ -1582,7 +2017,6 @@ function saveGame() {
         localStorage.setItem('treja_highscore', GameState.highscore.toString());
     } catch(e) {}
 }
-
 function loadGame() {
     try {
         const s = localStorage.getItem('treja_save');
@@ -1624,6 +2058,23 @@ function setupUIListeners() {
 }
 
 // ============================================================
+// ANIMATION LOOP
+// ============================================================
+function animate(timestamp) {
+    requestAnimationFrame(animate);
+    if (!GameState.gameStarted) return;
+    if (!lastTime) lastTime = timestamp;
+    const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    if (scene && renderer && camera) {
+        update(delta);
+        updateCamera();
+        renderer.render(scene, camera);
+    }
+}
+
+// ============================================================
 // START
 // ============================================================
 function updateLoading(pct, text) {
@@ -1639,13 +2090,29 @@ function startGame() {
 
     const saved = loadGame();
     if (saved) GameState.highscore = saved.highscore || 0;
-
     setupUIListeners();
-    updateLoading(20, 'Menyiapkan...');
+    updateLoading(15, 'Menyiapkan WebGL...');
 
-    setTimeout(() => {
-        resizeCanvas();
-        updateLoading(50, 'Membangun pegunungan...');
+    const tryInit = () => {
+        if (typeof THREE === 'undefined') {
+            if (!GameState.threeReady) {
+                setTimeout(tryInit, 100);
+                return;
+            }
+            loadingText.textContent = '❌ Gagal memuat WebGL library';
+            return;
+        }
+        GameState.threeReady = true;
+        try {
+            initThree();
+            GameState.threeReady = true;
+        } catch(e) {
+            console.error(e);
+            loadingText.textContent = '❌ WebGL tidak didukung browser ini';
+            return;
+        }
+
+        updateLoading(50, 'Membangun pegunungan 3D...');
         setTimeout(() => {
             buildLevel(1);
             updateLoading(80, 'Menempatkan harta karun...');
@@ -1660,14 +2127,22 @@ function startGame() {
                     GameState.gameStarted = true;
                     lastTime = 0;
                     if (!isMusicPlaying) startMusic(1);
-                    requestAnimationFrame(loop);
-                }, 200);
+                    requestAnimationFrame(animate);
+                }, 300);
             }, 200);
         }, 200);
-    }, 200);
+    };
+
+    if (window.__THREE_READY__) {
+        tryInit();
+    } else {
+        window.__TREJA_QUEUE__ = window.__TREJA_QUEUE__ || [];
+        window.__TREJA_QUEUE__.push(tryInit);
+        // Fallback: coba langsung setelah 500ms jika Three.js sudah ada
+        setTimeout(() => { if (typeof THREE !== 'undefined' && !GameState.threeReady) tryInit(); }, 500);
+    }
 }
 
-// Bind start button
 btnStartMain.addEventListener('click', (e) => {
     e.preventDefault();
     initAudio();
